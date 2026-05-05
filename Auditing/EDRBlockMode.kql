@@ -7,5 +7,9 @@ CloudAppEvents
 | extend
     SettingName     = tostring(Raw.SettingName),
     SettingNewValue = tostring(Raw.SettingsNewValue)
+| extend ToggleState = case(
+    SettingNewValue =~ "true",  "On",
+    SettingNewValue =~ "false", "Off",
+    SettingNewValue)
 | project Timestamp, AccountDisplayName, AccountObjectId, ActionType,
           IPAddress, SettingName, SettingNewValue, RawEventData
