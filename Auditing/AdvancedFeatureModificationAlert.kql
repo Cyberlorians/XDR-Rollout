@@ -1,0 +1,15 @@
+//Check for all advanced actions and create a CDR to alert on changes.
+CloudAppEvents
+| where Application == "Microsoft 365"
+| where ActionType == "SetAdvancedFeatures"
+| extend Raw = todynamic(RawEventData)
+| extend
+    SettingName     = tostring(Raw.SettingName),
+    SettingNewValue = tostring(Raw.SettingsNewValue)
+| extend ToggleState = case(
+    SettingNewValue =~ "true",  "On",
+    SettingNewValue =~ "false", "Off",
+    SettingNewValue)
+| project Timestamp, ReportId, AccountObjectId,
+          AccountUpn = AccountDisplayName, IPAddress,
+          ActionType, SettingName, SettingNewValue, ToggleState, RawEventData
