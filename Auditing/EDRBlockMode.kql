@@ -1,1 +1,11 @@
-
+//KQL to create a CDR to alert when EDR in block mode toggle is switched off or on
+CloudAppEvents
+| where Application == "Microsoft 365"
+| where ActionType == "SetAdvancedFeatures"
+| where RawEventData has "Enable EDR in block mode"
+| extend Raw = todynamic(RawEventData)
+| extend
+    SettingName     = tostring(Raw.SettingName),
+    SettingNewValue = tostring(Raw.SettingsNewValue)
+| project Timestamp, AccountDisplayName, AccountObjectId, ActionType,
+          IPAddress, SettingName, SettingNewValue, RawEventData
