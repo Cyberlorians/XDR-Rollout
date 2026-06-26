@@ -1,12 +1,13 @@
 // Defender for Endpoint (MDE) — Live Response sessions, commands & manual response actions
-// STATUS: 🚧 starter query — confirm the ActionType strings against your own tenant before
-//         promoting to a custom detection rule. Live Response also appears in DeviceEvents (Advanced Hunting).
+// VERIFIED: 10 rows / 30d in DIBSecCom (2026-06-26). Confirmed ActionTypes in tenant:
+//   RunLiveResponseSession, RunLiveResponseApi. Machine-action types included for coverage
+//   (IsolateMachine, RunAntiVirusScan, etc.) — they fire when those actions are taken.
+// Live Response also appears in DeviceEvents (Advanced Hunting); use Timestamp there.
 let Lookback = 30d;
 CloudAppEvents
 | where TimeGenerated >= ago(Lookback)
 | where ActionType has_any (
-    "LiveResponse","InitiateLiveResponseSession","RunLiveResponseScript","StartLiveResponseSession",
-    "GetLiveResponseResult","UploadLiveResponseFile","DownloadLiveResponseFile",
+    "RunLiveResponseSession","RunLiveResponseApi",
     "IsolateMachine","UnisolateMachine","RunAntiVirusScan","CollectInvestigationPackage",
     "RestrictCodeExecution","UnrestrictCodeExecution","StopAndQuarantineFile")
 | extend raw = parse_json(RawEventData)
