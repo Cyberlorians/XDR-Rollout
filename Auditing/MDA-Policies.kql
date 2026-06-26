@@ -1,0 +1,15 @@
+// Defender for Cloud Apps (MDA) — policies & app governance
+// App-governance / cloud-app policy changes (MicrosoftCloudAppSecurity workload).
+// Also surfaces OAuth app consent & permission-grant events that MDA flags as risky.
+let Lookback = 30d;
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| where tostring(raw.Workload) == "MicrosoftCloudAppSecurity"
+    or ActionType has_any ("Consent to application.","Add delegated permission grant.","Add app role assignment")
+| extend Actor = coalesce(tostring(raw.UserId), AccountDisplayName)
+| extend ActorKind = case(toint(raw.UserType)==5,"Application", tolower(tostring(Actor)) contains "@","User","Service/App")
+| extend Target = coalesce(tostring(raw.ObjectId), tostring(raw.Target))
+| extend Details = coalesce(tostring(raw.ModifiedProperties), tostring(raw.Parameters))
+| project TimeGenerated, Operation = ActionType, ActorKind, Actor, Target, Result = tostring(raw.ResultStatus), Details
+| order by TimeGenerated desc

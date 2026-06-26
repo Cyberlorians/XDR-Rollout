@@ -1,0 +1,15 @@
+// Intune / Endpoint Manager — all device config & compliance
+// Broad Intune change audit (config profiles, compliance policies, app deployments, scripts,
+// enrollment, RBAC assignments). Use when you want every endpoint-management change, not just MDE.
+let Lookback = 30d;
+IntuneAuditLogs
+| where TimeGenerated >= ago(Lookback)
+| where OperationName matches regex @"(?i)(create|patch|update|delete|assign|set|remove|add)"
+| extend p = parse_json(Properties)
+| extend Actor  = coalesce(Identity, tostring(p.Actor.UPN), tostring(p.Actor.ApplicationName), "unknown")
+| extend ActorKind = iff(tolower(tostring(Actor)) contains "@", "Admin", "Service/App")
+| extend Target = tostring(p.TargetDisplayNames[0])
+| extend TargetId = tostring(p.TargetObjectIds[0])
+| extend ObjectType = tostring(split(OperationName, " ")[-1])
+| project TimeGenerated, Operation = OperationName, ObjectType, ActorKind, Actor, Target, TargetId, Result = ResultType
+| order by TimeGenerated desc

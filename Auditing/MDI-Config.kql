@@ -1,0 +1,10 @@
+// Defender for Identity (MDI) — sensor & config changes
+// STATUS: 🚧 low event volume — validate in a tenant with active MDI sensors.
+let Lookback = 30d;
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| where tostring(raw.Workload) == "MicrosoftDefenderForIdentity"
+| extend Actor = tostring(raw.UserId)
+| project TimeGenerated, Operation = ActionType, Actor, Target = tostring(raw.ObjectId), Result = tostring(raw.ResultStatus), Details = tostring(raw.Parameters)
+| order by TimeGenerated desc

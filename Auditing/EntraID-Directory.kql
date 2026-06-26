@@ -1,0 +1,23 @@
+// Entra ID — CA policies, app registrations, roles, consents
+// Authoritative directory-change audit from AuditLogs. Covers CA policy add/update, app regs & secrets,
+// service-principal changes, directory-role assignments, OAuth consents, cross-tenant access, auth-method policy.
+// Filters out read-only *_Get chatter.
+// For Conditional Access only, add: | where OperationName has "conditional access policy"
+let Lookback = 30d;
+AuditLogs
+| where TimeGenerated >= ago(Lookback)
+| where Category in ("Policy","RoleManagement","ApplicationManagement","PolicyManagement",
+                     "CrossTenantAccessSettings","CrossTenantIdentitySyncSettings","DirectoryManagement",
+                     "UserManagement","GroupManagement","Device","EntitlementManagement")
+| where OperationName matches regex @"(?i)(add|update|set|remove|delete|create|consent|grant|register|enable|disable|reset|invite|assign)"
+| where OperationName !endswith "_Get" and OperationName !has "GetSettings" and OperationName !has "GetDynamic"
+| extend Actor = coalesce(tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName), "unknown")
+| extend ActorKind = iff(isnotempty(tostring(InitiatedBy.user.userPrincipalName)), "User", "App/Service")
+| extend ActorIP = tostring(InitiatedBy.user.ipAddress)
+| mv-apply tr = TargetResources on (
+    summarize Target = take_anyif(tostring(tr.displayName), isnotempty(tr.displayName)),
+              TargetType = take_any(tostring(tr.type)),
+              Changed = make_set_if(tostring(tr.modifiedProperties), array_length(tr.modifiedProperties) > 0)
+  )
+| project TimeGenerated, Category, Operation = OperationName, ActorKind, Actor, ActorIP, Target, TargetType, Result = tostring(Result), Changed
+| order by TimeGenerated desc

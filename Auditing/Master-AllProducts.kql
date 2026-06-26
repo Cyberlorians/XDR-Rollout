@@ -1,0 +1,51 @@
+// Master — single pane of glass (all products)
+// Normalizes every change-type event from CloudAppEvents into one timeline:
+// WHO (actor + kind) · WHERE (product + workload) · WHAT (operation, target, result, details).
+// Excludes read/browse telemetry and the Exchange CA-policy system mirror (authoritative in AuditLogs).
+// Time column: TimeGenerated (Sentinel) — swap to Timestamp for Advanced Hunting.
+let Lookback = 30d;
+let ChangeVerbs = @"(?i)(new-|set-|remove-|add-|update|create|delete|change|enable|disable|grant|revoke|assign|edit|install|register|consent|patch)";
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| extend Workload = tostring(raw.Workload)
+| where Workload != "" and Workload !in ("SharePoint","OneDrive","Yammer","MicrosoftTeams","Copilot","PowerPlatform","Endpoint","PublicEndpoint")
+| where ActionType matches regex ChangeVerbs
+| where ActionType !in ("MoveToDeletedItems","Set-ConditionalAccessPolicy")
+| where ActionType !startswith "File" and ActionType !startswith "Accessed" and ActionType !has "Preview" and ActionType !has "ContentExplorer"
+| extend Product = case(
+    Workload in ("URBAC","SecurityComplianceRBAC"),        "Defender XDR - RBAC",
+    Workload == "Microsoft365Defender",                    "Defender XDR - Detections/Settings",
+    Workload == "MicrosoftDefenderForEndpoint",            "Defender for Endpoint (MDE)",
+    Workload == "MicrosoftDefenderForIdentity",            "Defender for Identity (MDI)",
+    Workload == "MicrosoftCloudAppSecurity",               "Defender for Cloud Apps (MDA)",
+    Workload in ("Mip","MIP","DlpSensitiveInformationType"), "Purview - Info Protection",
+    Workload == "SecurityComplianceCenter" and ActionType has_any ("Dlp","Compliance"), "Purview - DLP/Compliance",
+    Workload == "SecurityComplianceCenter" and ActionType has_any ("AntiPhish","HostedContentFilter","SafeLinks","SafeAttachment","MalwareFilter","Hosted Outbound"), "Defender for Office 365 (MDO)",
+    Workload == "SecurityComplianceCenter",                "Purview / Security & Compliance",
+    Workload == "Exchange" and ActionType has_any ("AntiPhish","HostedContentFilter","SafeLinks","SafeAttachment","MalwareFilter"), "Defender for Office 365 (MDO)",
+    Workload == "Exchange",                                "Exchange Online",
+    Workload == "AzureActiveDirectory",                    "Entra ID",
+    Workload == "Sentinel",                                "Microsoft Sentinel",
+    Workload)
+| extend Actor = coalesce(tostring(raw.UserId), AccountDisplayName)
+| extend uid = tolower(Actor)
+| extend ActorKind = case(
+    toint(raw.UserType) == 4, "System",
+    toint(raw.UserType) == 5, "Application",
+    toint(raw.UserType) == 6, "ServicePrincipal",
+    uid startswith "nt service" or uid startswith "s-1-5", "Service/System",
+    uid contains "actas" or uid contains "w/o sid", "App/Delegated",
+    uid contains "@", "User",
+    isempty(uid), "Unknown", "Other")
+| extend Target = coalesce(tostring(raw.ObjectId), tostring(raw.RuleName), "")
+| extend Result = coalesce(tostring(raw.ResultStatus), "n/a")
+| extend Details = case(
+    isnotempty(raw.NonPIIParameters), tostring(raw.NonPIIParameters),
+    isnotempty(raw.Parameters),       tostring(raw.Parameters),
+    isnotempty(raw.ModifiedProperties), tostring(raw.ModifiedProperties),
+    isnotempty(raw.AddedRolePermission), strcat("Perms: ", strcat_array(raw.AddedRolePermission, ", ")),
+    isnotempty(raw.RuleName),         strcat("Rule: ", tostring(raw.RuleName)),
+    "")
+| project TimeGenerated, Product, Workload, Operation = ActionType, ActorKind, Actor, Target, Result, Details
+| order by TimeGenerated desc

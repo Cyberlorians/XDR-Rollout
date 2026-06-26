@@ -1,0 +1,27 @@
+// Defender for Endpoint (MDE) — EDR / AV / ASR policies
+// MDE security policies are authored via Intune endpoint security (IntuneAuditLogs is source of truth).
+// Catches AV, EDR, ASR, firewall, attack-surface-reduction create/edit/delete + assignment.
+// Folds in the small MicrosoftDefenderForEndpoint workload events from CloudAppEvents.
+// Validated example rows: "MDE - Windows Security UI - Hide Virus & Threat Protection",
+//                         "MDE - AV Auto Remediation - No User Actions".
+let Lookback = 30d;
+union isfuzzy=true
+(
+    IntuneAuditLogs
+    | where TimeGenerated >= ago(Lookback)
+    | where OperationName has_any ("DeviceManagementConfigurationPolicy","DeviceConfiguration","SecurityBaseline","EndpointSecurity","DeviceManagementIntent","Antivirus","Firewall","AttackSurfaceReduction","EndpointDetectionAndResponse")
+    | extend p = parse_json(Properties)
+    | extend Actor  = coalesce(Identity, tostring(p.Actor.UPN), "unknown")
+    | extend Target = tostring(p.TargetDisplayNames[0])
+    | extend TargetId = tostring(p.TargetObjectIds[0])
+    | project TimeGenerated, Source = "Intune", Operation = OperationName, Actor, Target, TargetId, Result = ResultType
+),
+(
+    CloudAppEvents
+    | where TimeGenerated >= ago(Lookback)
+    | extend raw = parse_json(RawEventData)
+    | where tostring(raw.Workload) == "MicrosoftDefenderForEndpoint"
+    | extend Actor = tostring(raw.UserId)
+    | project TimeGenerated, Source = "Defender", Operation = ActionType, Actor, Target = tostring(raw.ObjectId), TargetId = "", Result = tostring(raw.ResultStatus)
+)
+| order by TimeGenerated desc

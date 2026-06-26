@@ -1,1 +1,17 @@
-
+// Defender for Endpoint (MDE) — Live Response sessions, commands & manual response actions
+// STATUS: 🚧 starter query — confirm the ActionType strings against your own tenant before
+//         promoting to a custom detection rule. Live Response also appears in DeviceEvents (Advanced Hunting).
+let Lookback = 30d;
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| where ActionType has_any (
+    "LiveResponse","InitiateLiveResponseSession","RunLiveResponseScript","StartLiveResponseSession",
+    "GetLiveResponseResult","UploadLiveResponseFile","DownloadLiveResponseFile",
+    "IsolateMachine","UnisolateMachine","RunAntiVirusScan","CollectInvestigationPackage",
+    "RestrictCodeExecution","UnrestrictCodeExecution","StopAndQuarantineFile")
+| extend raw = parse_json(RawEventData)
+| extend Actor   = coalesce(tostring(raw.UserId), AccountDisplayName)
+| extend Device  = coalesce(tostring(raw.DeviceName), tostring(raw.ObjectId))
+| extend Command = tostring(raw.Command)
+| project TimeGenerated, Operation = ActionType, Actor, Device, Command, IPAddress, Result = tostring(raw.ResultStatus)
+| order by TimeGenerated desc

@@ -1,0 +1,22 @@
+// Purview — DLP, Sensitivity Labels, Retention
+// DLP policies/rules, sensitive-info-type rule packages, sensitivity-label (MIP) changes,
+// and retention / audit-retention policies — all under SCC + Purview workloads.
+let Lookback = 30d;
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| extend Workload = tostring(raw.Workload)
+| where Workload in ("SecurityComplianceCenter","DlpSensitiveInformationType","Mip","MIP")
+| where ActionType has_any ("Dlp","Label","Retention","Compliance","RulePackage","SensitiveInformationType","PolicyConfig","InformationBarrier")
+| where ActionType matches regex @"(?i)^(new|set|remove|edit|create|enable|disable)-?"
+| extend Actor = tostring(raw.UserId)
+| extend ActorKind = case(tolower(Actor) startswith "nt service","Service/System", tolower(Actor) contains "@","User","Other")
+| extend Category = case(
+    ActionType has "Dlp", "DLP",
+    ActionType has_any ("Label","SensitiveInformationType","RulePackage"), "Information Protection",
+    ActionType has_any ("Retention","UnifiedAuditLog"), "Retention/Audit",
+    "Other Purview")
+| extend Target = tostring(raw.ObjectId)
+| extend Params = coalesce(tostring(raw.NonPIIParameters), tostring(raw.Parameters))
+| project TimeGenerated, Category, Operation = ActionType, ActorKind, Actor, Target, Result = tostring(raw.ResultStatus), Params
+| order by TimeGenerated desc

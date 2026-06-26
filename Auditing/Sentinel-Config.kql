@@ -1,0 +1,11 @@
+// Microsoft Sentinel — analytics rules & workspace config
+// STATUS: 🚧 CloudAppEvents only captures the slice of Sentinel activity in the unified audit.
+//         Automation rules, playbooks (Logic Apps), and data-connector changes live in AzureActivity.
+let Lookback = 30d;
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| where tostring(raw.Workload) == "Sentinel"
+| extend Actor = coalesce(tostring(raw.UserId), AccountDisplayName)
+| project TimeGenerated, Operation = ActionType, Actor, Target = tostring(raw.ObjectId), Result = tostring(raw.ResultStatus), Details = tostring(raw.Parameters)
+| order by TimeGenerated desc

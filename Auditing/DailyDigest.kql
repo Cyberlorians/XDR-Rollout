@@ -1,0 +1,16 @@
+// Daily digest — roll-up by product & actor
+// Compact "what changed today" summary across CloudAppEvents. Drop into a scheduled query / workbook.
+let Lookback = 1d;
+let ChangeVerbs = @"(?i)(new-|set-|remove-|add-|update|create|delete|change|enable|disable|grant|revoke|assign|edit|install|register|consent|patch)";
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| extend Workload = tostring(raw.Workload)
+| where Workload != "" and Workload !in ("SharePoint","OneDrive","Yammer","MicrosoftTeams","Copilot","PowerPlatform","Endpoint","PublicEndpoint")
+| where ActionType matches regex ChangeVerbs
+| where ActionType !in ("MoveToDeletedItems","Set-ConditionalAccessPolicy")
+| where ActionType !startswith "File" and ActionType !startswith "Accessed" and ActionType !has "Preview"
+| extend Actor = tostring(raw.UserId)
+| summarize Changes = count(), Operations = make_set(ActionType, 20), Last = max(TimeGenerated)
+        by Workload, Actor
+| order by Changes desc
