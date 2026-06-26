@@ -1,0 +1,17 @@
+// Exchange Online — transport, mailbox, org config
+// Exchange admin changes (transport config, mailbox settings, permissions, org config).
+// Excludes the CA-policy mirror and high-volume mailbox-item telemetry.
+let Lookback = 30d;
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| where tostring(raw.Workload) == "Exchange"
+| where ActionType matches regex @"(?i)^(new|set|remove|add|enable|disable|install)-"
+| where ActionType != "Set-ConditionalAccessPolicy"          // system replication mirror
+| extend Actor = tostring(raw.UserId)
+| extend ActorKind = case(tolower(Actor) startswith "nt service","Service/System", tolower(Actor) contains "@","User","Other")
+| extend Target = tostring(raw.ObjectId)
+| extend Params = tostring(raw.Parameters)
+| extend Admin  = tobool(raw.ExternalAccess)
+| project TimeGenerated, Operation = ActionType, ActorKind, Actor, Target, ExternalAccess = Admin, Result = tostring(raw.ResultStatus), Params
+| order by TimeGenerated desc

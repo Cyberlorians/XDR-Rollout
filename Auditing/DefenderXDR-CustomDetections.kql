@@ -1,0 +1,17 @@
+// Defender XDR — Custom detections & portal settings
+// Custom detection rules (create/edit/enable/disable) + other Microsoft365Defender portal config.
+// Surfaces rule name, severity, MITRE techniques, and the KQL query body.
+let Lookback = 30d;
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| where tostring(raw.Workload) == "Microsoft365Defender"
+| where ActionType matches regex @"(?i)(create|update|change|delete|edit|enable|disable)"
+| extend Actor = tostring(raw.UserId)
+| extend ActorKind = iff(tolower(Actor) contains "@", "User", "Service/App")
+| extend Rule = coalesce(tostring(raw.RuleName), tostring(raw.AlertTitle))
+| extend Severity = tostring(raw.AlertSeverity)
+| extend Mitre = tostring(raw.MitreTechniques)
+| extend DetectionQuery = tostring(raw.Query)
+| project TimeGenerated, Operation = ActionType, ActorKind, Actor, Rule, Severity, Mitre, DetectionQuery
+| order by TimeGenerated desc

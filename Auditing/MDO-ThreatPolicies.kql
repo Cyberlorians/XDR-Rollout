@@ -1,0 +1,19 @@
+// Defender for Office 365 (MDO) — anti-phish / anti-spam / Safe Links / Safe Attachments
+// STATUS: 🚧 syntactically validated but 0 rows in test window (no MDO edits occurred).
+//         Validate against a tenant with recent MDO policy changes.
+// MDO threat policies are PowerShell cmdlets logged under Exchange / SecurityComplianceCenter workloads.
+let Lookback = 30d;
+let MdoCmdlets = @"(?i)(AntiPhish|HostedContentFilter|HostedOutboundSpamFilter|SafeLinks|SafeAttachment|MalwareFilter|PhishFilter|ATPProtectionPolicy|ATPBuiltIn|EOPProtectionPolicy|TenantAllowBlockList|QuarantinePolicy)";
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| where tostring(raw.Workload) in ("Exchange","SecurityComplianceCenter")
+| where ActionType matches regex MdoCmdlets
+| where ActionType matches regex @"(?i)^(new|set|remove|enable|disable)-"
+| extend Actor = tostring(raw.UserId)
+| extend ActorKind = case(tolower(Actor) startswith "nt service", "Service/System", tolower(Actor) contains "@", "User", "Other")
+| extend Policy  = tostring(raw.ObjectId)
+| extend Params  = coalesce(tostring(raw.NonPIIParameters), tostring(raw.Parameters))
+| extend Result  = tostring(raw.ResultStatus)
+| project TimeGenerated, Workload = tostring(raw.Workload), Operation = ActionType, ActorKind, Actor, Policy, Result, Params
+| order by TimeGenerated desc

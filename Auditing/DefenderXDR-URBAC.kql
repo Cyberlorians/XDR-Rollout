@@ -1,0 +1,17 @@
+// Defender XDR — Unified RBAC (roles & assignments)
+// Creation/editing of Defender XDR Unified RBAC roles & assignments (URBAC) + legacy S&C RBAC grants.
+// Shows who changed which role and the permissions added.
+let Lookback = 30d;
+CloudAppEvents
+| where TimeGenerated >= ago(Lookback)
+| extend raw = parse_json(RawEventData)
+| extend Workload = tostring(raw.Workload)
+| where Workload in ("URBAC","SecurityComplianceRBAC")
+| extend Actor = tostring(raw.UserId)
+| extend ActorKind = iff(tolower(Actor) contains "@", "User", "Service/App")
+| extend RoleDefId  = tostring(raw.RoleDefinitionId)
+| extend Assignment = tostring(raw.RoleAssignment)
+| extend AddedPerms = iff(isnotempty(raw.AddedRolePermission), strcat_array(raw.AddedRolePermission, ", "), "")
+| extend ClientIP   = tostring(raw.ClientIP)
+| project TimeGenerated, Workload, Operation = ActionType, ActorKind, Actor, RoleDefId, Assignment, AddedPerms, ClientIP
+| order by TimeGenerated desc
