@@ -20,11 +20,6 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$graphBaseUri = switch ($Environment) {
-    'Global' { 'https://graph.microsoft.com' }
-    'USGov' { 'https://graph.microsoft.us' }
-}
-
 $asrRules = [ordered]@{
     'blockabuseofexploitedvulnerablesigneddrivers' = @('Block abuse of exploited vulnerable signed drivers', '56a863a9-875e-4185-98a7-b882c64b5ce5')
     'blockadobereaderfromcreatingchildprocesses' = @('Block Adobe Reader from creating child processes', '7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c')
@@ -99,7 +94,7 @@ if (-not $context -or $missingScopes -or ($TenantId -and $context.TenantId -ne $
     Connect-MgGraph @connectParameters
 }
 
-$policies = Get-GraphCollection -Uri "$graphBaseUri/beta/deviceManagement/configurationPolicies?`$top=100"
+$policies = Get-GraphCollection -Uri '/beta/deviceManagement/configurationPolicies?$top=100'
 $asrPolicies = $policies | Where-Object {
     $_.templateReference.templateFamily -eq 'endpointSecurityAttackSurfaceReduction' -and
     $_.templateReference.templateDisplayName -eq 'Attack Surface Reduction Rules'
@@ -113,15 +108,15 @@ $rows = [System.Collections.Generic.List[object]]::new()
 $unmappedSettings = [System.Collections.Generic.List[string]]::new()
 
 foreach ($policy in $asrPolicies) {
-    $settings = Get-GraphCollection -Uri "$graphBaseUri/beta/deviceManagement/configurationPolicies/$($policy.id)/settings?`$top=100"
-    $assignments = Get-GraphCollection -Uri "$graphBaseUri/beta/deviceManagement/configurationPolicies/$($policy.id)/assignments"
+    $settings = Get-GraphCollection -Uri "/beta/deviceManagement/configurationPolicies/$($policy.id)/settings?`$top=100"
+    $assignments = Get-GraphCollection -Uri "/beta/deviceManagement/configurationPolicies/$($policy.id)/assignments"
     $assignmentNames = [System.Collections.Generic.List[string]]::new()
 
     foreach ($assignment in $assignments) {
         $targetType = $assignment.target.'@odata.type'
         if ($assignment.target.groupId) {
             try {
-                $group = Invoke-MgGraphRequest -Method GET -Uri "$graphBaseUri/v1.0/groups/$($assignment.target.groupId)?`$select=displayName" -OutputType PSObject
+                $group = Invoke-MgGraphRequest -Method GET -Uri "/v1.0/groups/$($assignment.target.groupId)?`$select=displayName" -OutputType PSObject
                 $prefix = if ($targetType -like '*exclusionGroupAssignmentTarget') { 'Exclude: ' } else { 'Group: ' }
                 $assignmentNames.Add($prefix + $group.displayName)
             }
