@@ -96,7 +96,7 @@ MDE ASR events contain the canonical ASR rule GUID in `AdditionalFields.RuleId`,
 
 A zero event count means no matching ASR behavior was observed during the selected lookback. It does not prove that the rule was not deployed. Use Intune device and per-setting status for deployment confirmation.
 
-`DefenderModes` and `DeviceModeDetails` describe only devices that generated a matching ASR event. They are intentionally empty for configured rules with zero events; the standalone inventory is the correct view for all reporting devices.
+`DefenderModes` and `DeviceModeDetails` describe only devices that generated a matching ASR event. `OverallDefenderModeCounts` shows compact tenant-wide counts from the latest seven days even when a configured rule has zero events. Use the standalone inventory for per-device details.
 
 `AvMode` is contained in the `DeviceTvmInfoGathering.AdditionalFields` property bag, and Microsoft does not currently document its numeric values in the public table schema. The included mapping was validated against live tenant telemetry on 2026-09-16. Unknown future values remain visible as `Unknown (<code>)`, while absent values appear as `Not reported`.
 

@@ -179,11 +179,12 @@ $kql = @"
 // Generated from live Intune configuration ($Environment) on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss K').
 // MDE events contain the ASR RuleId, but not the originating Intune PolicyId.
 let Lookback = ${LookbackDays}d;
+let DefenderModeLookback = 7d;
 let PolicyRules = datatable(PolicyName:string, PolicyId:string, Assignments:string, RuleName:string, RuleId:string, ConfiguredMode:string) [
 $($kqlRows -join ",`n")
 ];
 let LatestDefenderMode = DeviceTvmInfoGathering
-| where Timestamp > ago(Lookback)
+| where Timestamp > ago(DefenderModeLookback)
 | extend AvMode = toint(parse_json(AdditionalFields).AvMode)
 | summarize arg_max(Timestamp, AvMode) by DeviceId
 | extend DefenderMode = case(
@@ -196,6 +197,10 @@ let LatestDefenderMode = DeviceTvmInfoGathering
     isnull(AvMode), "Not reported",
     strcat("Unknown (", tostring(AvMode), ")"))
 | project DeviceId, DefenderMode, AvMode;
+let OverallDefenderModeCounts = toscalar(
+    LatestDefenderMode
+    | summarize DeviceCount=dcount(DeviceId) by DefenderMode
+    | summarize make_bag(bag_pack(DefenderMode, DeviceCount)));
 let AsrEvents = DeviceEvents
 | where Timestamp > ago(Lookback)
 | where ActionType startswith "Asr"
@@ -228,7 +233,8 @@ PolicyRules
     ObservedActions,
     Devices,
     DefenderModes,
-    DeviceModeDetails
+    DeviceModeDetails,
+    OverallDefenderModeCounts
 | order by PolicyName asc, EventCount desc, RuleName asc
 "@
 
