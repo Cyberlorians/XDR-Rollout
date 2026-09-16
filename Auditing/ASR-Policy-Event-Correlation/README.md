@@ -2,6 +2,27 @@
 
 Generates a ready-to-run Microsoft Defender Advanced Hunting query from the live Intune Attack Surface Reduction policy configuration.
 
+## Quick start
+
+GCC High:
+
+```powershell
+.\Export-IntuneAsrHuntingQuery.ps1 -Environment USGov -UseDeviceCode
+```
+
+Commercial:
+
+```powershell
+.\Export-IntuneAsrHuntingQuery.ps1 -UseDeviceCode
+```
+
+The script creates `Intune-ASR-Tracking.kql` in the current directory. Open Advanced Hunting, paste the file contents, and select **Run query**:
+
+- GCC High: <https://security.microsoft.us/v2/advanced-hunting>
+- Commercial: <https://security.microsoft.com/v2/advanced-hunting>
+
+No tenant ID or output path is required for normal interactive use.
+
 The PowerShell script reads deployed Endpoint Security **Attack Surface Reduction Rules** policies through Microsoft Graph and writes a `.kql` file containing:
 
 - Intune policy name and ID
@@ -52,7 +73,19 @@ Paste the generated query into Microsoft Defender Advanced Hunting at `https://s
   -OutputPath '.\Intune-ASR-Tracking.kql'
 ```
 
-`USGov` selects the Microsoft Graph US Government environment and `https://graph.microsoft.us`. Paste the generated query into Advanced Hunting in the GCC High Defender portal.
+`USGov` selects the Microsoft Graph US Government environment, `https://login.microsoftonline.us`, and `https://graph.microsoft.us`.
+
+## GCC High validation
+
+Validated end to end in GCC High on **2026-09-16**:
+
+- Authenticated through the `USGov` Microsoft Graph environment.
+- Read one live Intune ASR policy with 14 configured rules and its assignment group.
+- Generated the KQL file successfully.
+- Ran that exact KQL in GCC High Defender Advanced Hunting, workspace `dibsecus`.
+- Returned all 14 configured rule rows in 0.844 seconds with low query load.
+
+![GCC High Advanced Hunting results showing the generated policy, assignment, rule names, GUIDs, and configured modes](gcch-advanced-hunting-results.png)
 
 ## What the correlation means
 
