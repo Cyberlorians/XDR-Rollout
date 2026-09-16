@@ -18,6 +18,7 @@ Every query was validated against the live workspace on **2026-06-26** and confi
 | **Defender XDR — Advanced features (all)** | Alert on any `SetAdvancedFeatures` toggle | [`AdvancedFeatureModificationAlert.kql`](AdvancedFeatureModificationAlert.kql) | ✅ |
 | **Defender XDR — EDR block mode** | Alert when EDR-in-block-mode is toggled | [`EDRBlockMode.kql`](EDRBlockMode.kql) | ✅ |
 | **MDE — EDR/AV/ASR policies** | Endpoint security policy create/edit/assign (Intune-authored) | [`MDE-EndpointPolicies.kql`](MDE-EndpointPolicies.kql) | ✅ |
+| **MDE — ASR policy/event correlation** | Generate KQL from live Intune ASR policy names, GUIDs, modes, and assignments | [`ASR-Policy-Event-Correlation`](ASR-Policy-Event-Correlation/) | ✅ |
 | **MDE — Live Response** | Live Response sessions/API + manual response actions | [`LiveResponse.kql`](LiveResponse.kql) | ✅ |
 | **MDO — threat policies** | Anti-phish / spam / Safe Links / Safe Attachments cmdlets | [`MDO-ThreatPolicies.kql`](MDO-ThreatPolicies.kql) | ✅ |
 | **MDA — policies & governance** | Cloud-app policies + risky OAuth consents/grants | [`MDA-Policies.kql`](MDA-Policies.kql) | ✅ |
