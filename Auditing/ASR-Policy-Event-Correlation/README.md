@@ -32,7 +32,10 @@ The PowerShell script reads deployed Endpoint Security **Attack Surface Reductio
 - MDE event and device counts
 - First and last observed event
 - Observed MDE `ActionType` values and device names
+- Latest Defender Antivirus mode for devices that generated matching ASR events
 - Configured rules with zero observed events
+
+Run [`Defender-AV-Mode-Inventory.kql`](Defender-AV-Mode-Inventory.kql) by itself for a current per-device inventory of Active, Passive, Disabled, EDR Blocked, and other reported states.
 
 ## Requirements
 
@@ -92,5 +95,9 @@ Validated end to end in GCC High on **2026-09-16**:
 MDE ASR events contain the canonical ASR rule GUID in `AdditionalFields.RuleId`, but they do not contain the originating Intune policy ID. The generated query therefore correlates observed events to every discovered Intune policy that configures the same rule GUID and displays that policy's assignments.
 
 A zero event count means no matching ASR behavior was observed during the selected lookback. It does not prove that the rule was not deployed. Use Intune device and per-setting status for deployment confirmation.
+
+`DefenderModes` and `DeviceModeDetails` describe only devices that generated a matching ASR event. They are intentionally empty for configured rules with zero events; the standalone inventory is the correct view for all reporting devices.
+
+`AvMode` is contained in the `DeviceTvmInfoGathering.AdditionalFields` property bag, and Microsoft does not currently document its numeric values in the public table schema. The included mapping was validated against live tenant telemetry on 2026-09-16. Unknown future values remain visible as `Unknown (<code>)`, while absent values appear as `Not reported`.
 
 If multiple policies or another management authority configure the same rule, compare `ConfiguredMode` with `ObservedActions`. For example, a policy configured for Audit alongside a `Blocked` event indicates another effective configuration source or overlapping policy should be investigated.

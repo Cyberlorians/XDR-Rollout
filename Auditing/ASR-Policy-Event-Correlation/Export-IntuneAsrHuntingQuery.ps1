@@ -182,17 +182,35 @@ let Lookback = ${LookbackDays}d;
 let PolicyRules = datatable(PolicyName:string, PolicyId:string, Assignments:string, RuleName:string, RuleId:string, ConfiguredMode:string) [
 $($kqlRows -join ",`n")
 ];
+let LatestDefenderMode = DeviceTvmInfoGathering
+| where Timestamp > ago(Lookback)
+| extend AvMode = toint(parse_json(AdditionalFields).AvMode)
+| summarize arg_max(Timestamp, AvMode) by DeviceId
+| extend DefenderMode = case(
+    AvMode == 0, "Active",
+    AvMode == 1, "Passive",
+    AvMode == 2, "Disabled",
+    AvMode == 3, "Other",
+    AvMode == 4, "EDR Blocked",
+    AvMode == 5, "Passive Audit",
+    isnull(AvMode), "Not reported",
+    strcat("Unknown (", tostring(AvMode), ")"))
+| project DeviceId, DefenderMode, AvMode;
 let AsrEvents = DeviceEvents
 | where Timestamp > ago(Lookback)
 | where ActionType startswith "Asr"
 | extend RuleId = tolower(tostring(parse_json(AdditionalFields).RuleId))
+| join kind=leftouter LatestDefenderMode on DeviceId
+| extend DefenderMode = coalesce(DefenderMode, "Not reported")
 | summarize
     EventCount=count(),
     DeviceCount=dcount(DeviceId),
     FirstEvent=min(Timestamp),
     LastEvent=max(Timestamp),
     ObservedActions=make_set(ActionType),
-    Devices=make_set(DeviceName, 100)
+        Devices=make_set(DeviceName, 100),
+        DefenderModes=make_set(DefenderMode),
+        DeviceModeDetails=make_set(strcat(DeviceName, ": ", DefenderMode), 100)
   by RuleId;
 PolicyRules
 | join kind=leftouter AsrEvents on RuleId
@@ -208,7 +226,9 @@ PolicyRules
     FirstEvent,
     LastEvent,
     ObservedActions,
-    Devices
+    Devices,
+    DefenderModes,
+    DeviceModeDetails
 | order by PolicyName asc, EventCount desc, RuleName asc
 "@
 
