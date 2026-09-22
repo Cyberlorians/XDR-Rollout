@@ -8,16 +8,16 @@ Each entire standalone query was submitted through the hunting editor. The captu
 
 | Query | HTTP | Live rows | Synthetic rows |
 | --- | --- | --- | --- |
-| [Device readiness](Device-Readiness.kql) | 200 | 8 | 9 |
-| [Readiness summary](Readiness-Summary.kql) | 200 | 3 | 9 |
-| [Combined evidence](Device-Evidence-Summary.kql) | 200 | 8 | 9 |
-| [Assessment detail](ASR-Assessments.kql) | 200 | 144 | 10 |
-| [Assessment summary](ASR-Assessment-Summary.kql) | 200 | 18 | 2 |
-| [ASR events](ASR-Events.kql) | 200 | 0 | 14 |
-| [Daily activity](ASR-Daily-Activity.kql) | 200 | 0 | 8 |
-| [USB correlation](USB-Correlation.kql) | 200 | 0 | 11 nearest / 14 all candidates |
-| [Configuration discovery](Configuration-Discovery.kql) | 200 | 175 | 2 |
-| [Weekly observations](Weekly-Observations.kql) | 200 | 5 | 6 on validation date |
+| [Device readiness](../DefenderEndpoint-Device-Onboarding-and-AV-Health.kql) | 200 | 8 | 9 |
+| [Readiness summary](../DefenderEndpoint-Onboarding-and-AV-Health-Summary.kql) | 200 | 3 | 9 |
+| [Combined evidence](../DefenderEndpoint-Device-AV-and-ASR-Evidence.kql) | 200 | 8 | 9 |
+| [Assessment detail](../DefenderEndpoint-ASR-Assessments-by-Device.kql) | 200 | 144 | 10 |
+| [Assessment summary](../DefenderEndpoint-ASR-Assessments-by-Rule.kql) | 200 | 18 | 2 |
+| [ASR events](../DefenderEndpoint-ASR-Event-Details.kql) | 200 | 0 | 14 |
+| [Daily activity](../DefenderEndpoint-ASR-Events-Daily-Summary.kql) | 200 | 0 | 8 |
+| [USB correlation](../DefenderEndpoint-ASR-USB-Mount-Correlation.kql) | 200 | 0 | 11 nearest / 14 all candidates |
+| [Configuration discovery](../DefenderEndpoint-Security-Configuration-Catalog.kql) | 200 | 175 | 2 |
+| [Weekly observations](../DefenderEndpoint-Onboarding-and-ASR-Weekly-Observations.kql) | 200 | 5 | 6 on validation date |
 
 All ten also executed successfully against synthetic table bindings. Weekly row counts can change with the weekday because fixtures use relative timestamps; daily grouping can change around midnight.
 
@@ -25,7 +25,7 @@ The 35 original blocks were separately submitted unchanged: 34 executed successf
 
 ## Repeat the Synthetic Tests
 
-1. Open [the fixtures](tests/Fixtures.kql). Its five `let` bindings shadow the hunting tables with synthetic data; they do not ingest data or alter the tenant.
+1. Open [the fixtures](tests/DefenderEndpoint-Synthetic-Test-Data.kql). Its five `let` bindings shadow the hunting tables with synthetic data; they do not ingest data or alter the tenant.
 2. Replace only the final `print Fixture = ...` statement with the complete contents of one production query. Keep the production query's default parameters initially.
 3. Select and run the complete combined text in Advanced Hunting. Check the expectations below, not just successful compilation.
 4. Repeat USB with `NearestOnly = false`. Test real table availability separately by running the production query without fixtures.
@@ -60,4 +60,4 @@ Configuration discovery and weekly observations additionally passed execution/sh
 - Confirm the expected device population, required ASR rules, effective assignment/deployment, third-party AV removal, and migration-complete criteria separately.
 - Test retention, export handling, and performance at the deployment's scale. Recorded event counts can be throttled; sample lists and approximate counts have documented limits.
 
-The version committed with this record is the tested source. Subsequent query edits require rerunning the corresponding live and synthetic checks.
+The original tested source is commit `d6478b0`. The September 22 filename cleanup moved these reports directly into Auditing and renamed the synthetic fixture; all 28 renamed KQL files across Auditing were verified byte-identical to their pre-move contents using SHA-256. This does not extend the live validation to older change-audit queries. See the [filename map](../QUERY-RENAMES.md). Subsequent query-content edits require rerunning the corresponding live and synthetic checks.

@@ -35,7 +35,7 @@ The PowerShell script reads deployed Endpoint Security **Attack Surface Reductio
 - Latest Defender Antivirus mode for devices that generated matching ASR events
 - Configured rules with zero observed events
 
-Run [`Defender-AV-Mode-Inventory.kql`](../Defender-AV-Mode-Inventory.kql) by itself for a current per-device inventory of Active, Passive, Disabled, EDR Blocked, and other reported states.
+Run [`DefenderEndpoint-AV-Mode-Inventory.kql`](../DefenderEndpoint-AV-Mode-Inventory.kql) by itself for a current per-device inventory of Active, Passive, Disabled, EDR Blocked, and other reported states.
 
 ## Requirements
 
