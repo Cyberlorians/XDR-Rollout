@@ -1,0 +1,41 @@
+let Lookback = 30d;
+let FreshnessThreshold = 7d;
+let Inventory = DeviceInfo
+| where Timestamp >= ago(Lookback)
+| where isnotempty(DeviceId)
+| summarize arg_max(Timestamp, *) by DeviceId
+| where isempty(MergedToDeviceId)
+| project DeviceId, DeviceName, InventoryTimestamp = Timestamp, OnboardingStatus, SensorHealthState;
+let Modes = DeviceTvmInfoGathering
+| where Timestamp >= ago(Lookback)
+| extend AvMode = toint(parse_json(AdditionalFields).AvMode)
+| summarize arg_max(Timestamp, AvMode) by DeviceId
+| project DeviceId, ModeTimestamp = Timestamp, AvMode;
+let ASR = DeviceTvmSecureConfigurationAssessment
+| where Timestamp >= ago(Lookback)
+| summarize arg_max(Timestamp, *) by DeviceId, ConfigurationId
+| join kind=inner (
+    DeviceTvmSecureConfigurationAssessmentKB
+    | where ConfigurationSubcategory =~ "Attack Surface Reduction"
+    | project ConfigurationId
+) on ConfigurationId
+| summarize ReportedAssessments = count(), ApplicableCompliant = countif(IsApplicable == true and IsCompliant == true),
+    ApplicableNoncompliant = countif(IsApplicable == true and IsCompliant == false),
+    NotApplicable = countif(IsApplicable == false),
+    UnknownAssessment = countif(isnull(IsApplicable) or (IsApplicable == true and isnull(IsCompliant))),
+    StaleAssessments = countif(Timestamp < ago(FreshnessThreshold)),
+    OldestAssessment = min(Timestamp), LatestAssessment = max(Timestamp) by DeviceId;
+Inventory
+| join kind=leftouter Modes on DeviceId
+| join kind=leftouter ASR on DeviceId
+| extend DefenderMode = case(AvMode == 0, "Active", AvMode == 1, "Passive", AvMode == 2, "Disabled",
+    AvMode == 3, "Other", AvMode == 4, "EDR Blocked", AvMode == 5, "Passive Audit",
+    isnull(AvMode), "Not reported", strcat("Unknown (", tostring(AvMode), ")"))
+| extend InventoryFreshness = iff(InventoryTimestamp < ago(FreshnessThreshold), "Stale", "Recent"),
+    ModeFreshness = case(isnull(ModeTimestamp), "Not reported", ModeTimestamp < ago(FreshnessThreshold), "Stale", "Recent"),
+    ASREvidence = iff(isnull(ReportedAssessments), "No ASR assessments reported", "Assessment evidence; not configured mode")
+| project DeviceId, DeviceName, OnboardingStatus, SensorHealthState,
+    InventoryTimestamp, InventoryFreshness, AvMode, DefenderMode, ModeTimestamp, ModeFreshness,
+    ASREvidence, ReportedAssessments, ApplicableCompliant, ApplicableNoncompliant, NotApplicable,
+    UnknownAssessment, StaleAssessments, OldestAssessment, LatestAssessment
+| order by DeviceName asc

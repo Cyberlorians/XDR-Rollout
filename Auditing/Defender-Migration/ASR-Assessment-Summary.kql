@@ -1,0 +1,20 @@
+let Lookback = 30d;
+let FreshnessThreshold = 7d;
+DeviceTvmSecureConfigurationAssessment
+| where Timestamp >= ago(Lookback)
+| where isnotempty(DeviceId)
+| summarize arg_max(Timestamp, *) by DeviceId, ConfigurationId
+| join kind=inner (
+    DeviceTvmSecureConfigurationAssessmentKB
+    | where ConfigurationSubcategory =~ "Attack Surface Reduction"
+    | project ConfigurationId, ConfigurationName
+) on ConfigurationId
+| summarize ReportingDevices = count(),
+    ApplicableCompliant = countif(IsApplicable == true and IsCompliant == true),
+    ApplicableNoncompliant = countif(IsApplicable == true and IsCompliant == false),
+    NotApplicable = countif(IsApplicable == false),
+    UnknownAssessment = countif(isnull(IsApplicable) or (IsApplicable == true and isnull(IsCompliant))),
+    StaleAssessments = countif(Timestamp < ago(FreshnessThreshold)),
+    OldestAssessment = min(Timestamp), LatestAssessment = max(Timestamp)
+    by ConfigurationId, ConfigurationName
+| order by ConfigurationName asc

@@ -1,0 +1,39 @@
+let Lookback = 29d;
+let CorrelationWindow = 24h;
+let NearestOnly = true;
+let Events = DeviceEvents
+| where Timestamp >= ago(Lookback)
+| where ActionType startswith "AsrUntrustedUsbProcess"
+| extend Drive = toupper(extract(@"^([A-Za-z]):", 1, FolderPath))
+| project DeviceId, DeviceName, Timestamp, ReportId, ActionType, Drive, FileName, FolderPath,
+    InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessAccountName;
+let Mounts = DeviceEvents
+| where Timestamp >= ago(Lookback + CorrelationWindow)
+| where ActionType == "UsbDriveMounted"
+| extend Fields = parse_json(AdditionalFields)
+| extend Drive = toupper(extract(@"^([A-Za-z])(?::|$)", 1, tostring(Fields.DriveLetter)))
+| where isnotempty(Drive)
+| project DeviceId, Drive, MountTimestamp = Timestamp, MountReportId = ReportId,
+    ProductName = tostring(Fields.ProductName), SerialNumber = tostring(Fields.SerialNumber),
+    Manufacturer = tostring(Fields.Manufacturer), BusType = tostring(Fields.BusType);
+let Candidates = Events
+| where isnotempty(DeviceId) and isnotempty(Drive)
+| join kind=inner Mounts on DeviceId, Drive
+| where MountTimestamp <= Timestamp and Timestamp - MountTimestamp <= CorrelationWindow
+| project DeviceId, DeviceName, Timestamp, ReportId, MountTimestamp, MountReportId, ProductName, SerialNumber, Manufacturer, BusType;
+let Nearest = Candidates
+| summarize LatestMountTimestamp = max(MountTimestamp), CandidateCount = count() by DeviceId, DeviceName, Timestamp, ReportId;
+let Enrichment = Candidates
+| join kind=inner Nearest on DeviceId, DeviceName, Timestamp, ReportId
+| extend IsNearest = MountTimestamp == LatestMountTimestamp
+| where NearestOnly == false or IsNearest;
+Events
+| join kind=leftouter Enrichment on DeviceId, DeviceName, Timestamp, ReportId
+| extend CorrelationStatus = iff(isnull(MountTimestamp), "No qualifying mount observed", "Candidate mount; not causal proof"),
+    MinutesSinceMount = (Timestamp - MountTimestamp) / 1m,
+    CandidateCount = coalesce(CandidateCount, 0)
+| project Timestamp, DeviceId, DeviceName, ReportId, ActionType, Drive, FileName, FolderPath,
+    InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessAccountName,
+    CorrelationStatus, CandidateCount, IsNearest, MountTimestamp, MountReportId,
+    MinutesSinceMount, ProductName, SerialNumber, Manufacturer, BusType
+| order by Timestamp desc, MountTimestamp desc

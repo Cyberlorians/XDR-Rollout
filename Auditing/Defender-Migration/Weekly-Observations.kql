@@ -1,0 +1,17 @@
+let Lookback = 30d;
+let Inventory = DeviceInfo
+| where Timestamp >= ago(Lookback)
+| where isnotempty(DeviceId)
+| extend Week = startofweek(Timestamp)
+| summarize arg_max(Timestamp, *) by Week, DeviceId
+| where isempty(MergedToDeviceId)
+| extend State = strcat("Last inventory observation in week: ", OnboardingStatus)
+| summarize ObservedDevicesApprox = dcount(DeviceId) by Week, State;
+let Activity = DeviceEvents
+| where Timestamp >= ago(Lookback)
+| where ActionType startswith "Asr"
+| extend State = case(ActionType endswith "WarnBypassed", "ASR warn bypass observed", ActionType endswith "Audited", "ASR audit observed", ActionType endswith "Blocked", "ASR block observed", "Other ASR activity")
+| summarize ObservedDevicesApprox = dcountif(DeviceId, isnotempty(DeviceId)) by Week = startofweek(Timestamp), State;
+union Inventory, Activity
+| extend PartialWeek = Week < ago(Lookback) or Week + 7d > now()
+| order by Week asc, State asc

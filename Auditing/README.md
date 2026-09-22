@@ -6,9 +6,13 @@ Entra ID, Intune, Purview, Exchange, Sentinel). Each query answers **WHO** chang
 - One query per `.kql` file — runnable / deployable as-is. This page is the index.
 - Default lookback `30d`. Time column is **`TimeGenerated`** (Sentinel) / **`Timestamp`** (Advanced Hunting).
 
+## Migration Reporting
+
+[Defender Migration Reporting](Defender-Migration/) adds ten standalone Advanced Hunting reports for inventory, reported AV mode, ASR assessments/activity, and USB correlation. Validated separately in GCC High on September 22, 2026, with live execution and synthetic regression checks. Includes a 35-block replacement map and explicit coverage limitations.
+
 ## Coverage Tracker
 
-Every query was validated against the live workspace on **2026-06-26** and confirmed to run correctly.
+The original change-auditing pack was validated against the live workspace on **2026-06-26**. Later additions carry their own validation notes; see the linked packs.
 
 | Audit activity | Description | Query | Status |
 |---|---|---|---|

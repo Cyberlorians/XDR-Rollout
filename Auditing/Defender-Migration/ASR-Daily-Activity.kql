@@ -1,0 +1,11 @@
+let Lookback = 30d;
+DeviceEvents
+| where Timestamp >= ago(Lookback)
+| where ActionType startswith "Asr"
+| extend RuleId = tolower(tostring(parse_json(AdditionalFields).RuleId)),
+    ObservedAction = case(ActionType endswith "WarnBypassed", "Warn bypass", ActionType endswith "Audited", "Audit", ActionType endswith "Blocked", "Block", "Other")
+| summarize RecordedEvents = count(), ObservedDevicesApprox = dcountif(DeviceId, isnotempty(DeviceId)),
+    FilesSample = make_set(FileName, 20), ProcessesSample = make_set(InitiatingProcessFileName, 20),
+    FirstObserved = min(Timestamp), LastObserved = max(Timestamp)
+    by Day = bin(Timestamp, 1d), RuleId, ActionType, ObservedAction
+| order by Day desc, RecordedEvents desc

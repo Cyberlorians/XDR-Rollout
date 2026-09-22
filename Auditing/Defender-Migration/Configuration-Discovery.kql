@@ -1,0 +1,15 @@
+let Lookback = 30d;
+DeviceTvmSecureConfigurationAssessment
+| where Timestamp >= ago(Lookback)
+| where isnotempty(DeviceId)
+| summarize arg_max(Timestamp, *) by DeviceId, ConfigurationId
+| summarize ReportingDevices = count(), ApplicableDevices = countif(IsApplicable == true),
+    ApplicableCompliantDevices = countif(IsApplicable == true and IsCompliant == true),
+    LatestAssessment = max(Timestamp) by ConfigurationId, ConfigurationCategory, ConfigurationSubcategory
+| join kind=leftouter (
+    DeviceTvmSecureConfigurationAssessmentKB
+    | project ConfigurationId, ConfigurationName, ConfigurationDescription
+) on ConfigurationId
+| project ConfigurationId, ConfigurationName, ConfigurationCategory, ConfigurationSubcategory,
+    ReportingDevices, ApplicableDevices, ApplicableCompliantDevices, LatestAssessment, ConfigurationDescription
+| order by ConfigurationId asc

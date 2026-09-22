@@ -1,0 +1,22 @@
+let Lookback = 30d;
+let FreshnessThreshold = 7d;
+let Inventory = DeviceInfo
+| where Timestamp >= ago(Lookback)
+| where isnotempty(DeviceId)
+| summarize arg_max(Timestamp, *) by DeviceId
+| where isempty(MergedToDeviceId)
+| project DeviceId, InventoryTimestamp = Timestamp, OnboardingStatus, SensorHealthState;
+let Modes = DeviceTvmInfoGathering
+| where Timestamp >= ago(Lookback)
+| extend AvMode = toint(parse_json(AdditionalFields).AvMode)
+| summarize arg_max(Timestamp, AvMode) by DeviceId
+| project DeviceId, ModeTimestamp = Timestamp, AvMode;
+Inventory
+| join kind=leftouter Modes on DeviceId
+| extend DefenderMode = case(AvMode == 0, "Active", AvMode == 1, "Passive", AvMode == 2, "Disabled",
+    AvMode == 3, "Other", AvMode == 4, "EDR Blocked", AvMode == 5, "Passive Audit",
+    isnull(AvMode), "Not reported", strcat("Unknown (", tostring(AvMode), ")"))
+| extend InventoryFreshness = iff(InventoryTimestamp < ago(FreshnessThreshold), "Stale", "Recent"),
+    ModeFreshness = case(isnull(ModeTimestamp), "Not reported", ModeTimestamp < ago(FreshnessThreshold), "Stale", "Recent")
+| summarize Devices = count() by OnboardingStatus, SensorHealthState, DefenderMode, InventoryFreshness, ModeFreshness
+| order by DefenderMode asc, InventoryFreshness asc

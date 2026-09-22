@@ -1,0 +1,29 @@
+let Lookback = 30d;
+let FreshnessThreshold = 7d;
+let Inventory = DeviceInfo
+| where Timestamp >= ago(Lookback)
+| where isnotempty(DeviceId)
+| summarize arg_max(Timestamp, *) by DeviceId
+| where isempty(MergedToDeviceId)
+| project DeviceId, DeviceName, InventoryTimestamp = Timestamp, OnboardingStatus;
+let Assessments = DeviceTvmSecureConfigurationAssessment
+| where Timestamp >= ago(Lookback)
+| where isnotempty(DeviceId)
+| summarize arg_max(Timestamp, *) by DeviceId, ConfigurationId
+| join kind=inner (
+    DeviceTvmSecureConfigurationAssessmentKB
+    | where ConfigurationSubcategory =~ "Attack Surface Reduction"
+    | project ConfigurationId, ConfigurationName
+) on ConfigurationId
+| project DeviceId, ConfigurationId, ConfigurationName, AssessmentTimestamp = Timestamp, IsApplicable, IsCompliant;
+Inventory
+| join kind=leftouter Assessments on DeviceId
+| extend AssessmentStatus = case(
+    isempty(ConfigurationId), "No ASR assessment reported",
+    IsApplicable == false, "Not applicable", isnull(IsApplicable), "Applicability unknown",
+    IsCompliant == true, "Compliant assessment", IsCompliant == false, "Noncompliant assessment", "Compliance unknown")
+| extend AssessmentFreshness = case(isnull(AssessmentTimestamp), "Not reported", AssessmentTimestamp < ago(FreshnessThreshold), "Stale", "Recent"),
+    InventoryFreshness = iff(InventoryTimestamp < ago(FreshnessThreshold), "Stale", "Recent")
+| project DeviceId, DeviceName, OnboardingStatus, InventoryTimestamp, InventoryFreshness,
+    ConfigurationId, ConfigurationName, AssessmentTimestamp, AssessmentFreshness, AssessmentStatus, IsApplicable, IsCompliant
+| order by DeviceName asc, ConfigurationId asc
