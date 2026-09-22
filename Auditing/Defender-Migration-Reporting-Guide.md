@@ -1,10 +1,10 @@
 # Defender Migration Reporting
 
-The runnable queries now live directly in [Auditing](../README.md), with product-and-purpose filenames. This folder retains the reporting guide, comparison, validation record, and synthetic tests so existing links to this guide continue to work. See the [filename map](../QUERY-RENAMES.md) for old paths.
+The runnable queries, this guide, the comparison, validation record, and synthetic tests all live directly in [Auditing](README.md), with no subfolders. The former Defender-Migration folder has been removed; update older bookmarks using the [filename map](QUERY-RENAMES.md).
 
 Ten standalone, read-only queries for Defender Advanced Hunting. Rebuilt from a review of 35 reporting blocks and compared with this repository's existing AV-mode and Intune ASR tools. Customer source files and tenant results are not included.
 
-**Validated in GCC High on September 22, 2026:** all ten queries executed successfully. Inventory and assessment reports returned live data; ASR/USB event reports returned zero live rows and were additionally exercised with synthetic KQL fixtures. See [validation evidence](VALIDATION.md) and the [replacement map](COMPARISON.md).
+**Validated in GCC High on September 22, 2026:** all ten queries executed successfully. Inventory and assessment reports returned live data; ASR/USB event reports returned zero live rows and were additionally exercised with synthetic KQL fixtures. See [validation evidence](Defender-Migration-Validation.md) and the [replacement map](Defender-Migration-Query-Comparison.md).
 
 ## Run
 
@@ -12,16 +12,16 @@ Open a query in Defender Advanced Hunting, select the entire query, and run it. 
 
 | Report | Purpose |
 | --- | --- |
-| [Device readiness](../DefenderEndpoint-Device-Onboarding-and-AV-Health.kql) | Latest observed onboarding, sensor health, reported AV mode, and independent source timestamps |
-| [Readiness summary](../DefenderEndpoint-Onboarding-and-AV-Health-Summary.kql) | Device counts by observed state and freshness, without invented migration phases |
-| [Combined device evidence](../DefenderEndpoint-Device-AV-and-ASR-Evidence.kql) | AV/inventory evidence alongside applicable, nonapplicable, unknown, and stale ASR assessment counts |
-| [ASR assessment detail](../DefenderEndpoint-ASR-Assessments-by-Device.kql) | Latest assessment per device/configuration, including inventory devices without ASR assessments |
-| [ASR assessment summary](../DefenderEndpoint-ASR-Assessments-by-Rule.kql) | Rule-level compliance evidence; reporting population is assessment devices, not the inventory denominator |
-| [ASR event detail](../DefenderEndpoint-ASR-Event-Details.kql) | Filterable drilldowns with 19 canonical GUID labels, raw action fallback, account/process/file context, and event identity |
-| [Daily ASR activity](../DefenderEndpoint-ASR-Events-Daily-Summary.kql) | Recorded event counts, approximate device counts, and capped file/process samples |
-| [USB correlation](../DefenderEndpoint-ASR-USB-Mount-Correlation.kql) | Every USB ASR event with nearest qualifying mount candidates, including tied candidates and unmatched events |
-| [Configuration discovery](../DefenderEndpoint-Security-Configuration-Catalog.kql) | Actual configuration ID meanings, applicability, and assessment coverage |
-| [Weekly observations](../DefenderEndpoint-Onboarding-and-ASR-Weekly-Observations.kql) | Last inventory observation within each week plus independently observed ASR activity |
+| [Device readiness](DefenderEndpoint-Device-Onboarding-and-AV-Health.kql) | Latest observed onboarding, sensor health, reported AV mode, and independent source timestamps |
+| [Readiness summary](DefenderEndpoint-Onboarding-and-AV-Health-Summary.kql) | Device counts by observed state and freshness, without invented migration phases |
+| [Combined device evidence](DefenderEndpoint-Device-AV-and-ASR-Evidence.kql) | AV/inventory evidence alongside applicable, nonapplicable, unknown, and stale ASR assessment counts |
+| [ASR assessment detail](DefenderEndpoint-ASR-Assessments-by-Device.kql) | Latest assessment per device/configuration, including inventory devices without ASR assessments |
+| [ASR assessment summary](DefenderEndpoint-ASR-Assessments-by-Rule.kql) | Rule-level compliance evidence; reporting population is assessment devices, not the inventory denominator |
+| [ASR event detail](DefenderEndpoint-ASR-Event-Details.kql) | Filterable drilldowns with 19 canonical GUID labels, raw action fallback, account/process/file context, and event identity |
+| [Daily ASR activity](DefenderEndpoint-ASR-Events-Daily-Summary.kql) | Recorded event counts, approximate device counts, and capped file/process samples |
+| [USB correlation](DefenderEndpoint-ASR-USB-Mount-Correlation.kql) | Every USB ASR event with nearest qualifying mount candidates, including tied candidates and unmatched events |
+| [Configuration discovery](DefenderEndpoint-Security-Configuration-Catalog.kql) | Actual configuration ID meanings, applicability, and assessment coverage |
+| [Weekly observations](DefenderEndpoint-Onboarding-and-ASR-Weekly-Observations.kql) | Last inventory observation within each week plus independently observed ASR activity |
 
 Default lookback is 30 days. USB uses 29 days of ASR events plus a 24-hour mount lookback, fitting a 30-day retention window. The seven-day freshness threshold is a reporting choice, not a product SLA. Adjust parameters to your retention and reporting requirements.
 
@@ -56,7 +56,7 @@ Correlation requires the same device and a nonempty normalized drive, with the m
 ## Interpretation
 
 - Inventory is the observed 30-day population, not a CMDB or all licensed devices. Merged-away inventory records are excluded. Entirely absent devices need an external expected-device list.
-- AV mode reuses [the existing inventory approach](../DefenderEndpoint-AV-Mode-Inventory.kql): `DeviceTvmInfoGathering.AdditionalFields.AvMode`. This property is not documented in the public hunting schema. Lab execution is verified; compare known devices with AV health reporting before operational decisions. Codes outside 0-5 remain explicit.
+- AV mode reuses [the existing inventory approach](DefenderEndpoint-AV-Mode-Inventory.kql): `DeviceTvmInfoGathering.AdditionalFields.AvMode`. This property is not documented in the public hunting schema. Lab execution is verified; compare known devices with AV health reporting before operational decisions. Codes outside 0-5 remain explicit.
 - Source timestamps show when the respective service recorded data, not necessarily a new endpoint heartbeat. Recent TVM data does not override stale inventory or an inactive sensor. AV mode is not inferred from configuration compliance, and Passive does not identify the primary third-party product.
 - ASR assessments describe recommendations and applicability. They do not prove configured Block/Audit/Warn/Off mode. Missing assessment counts remain null in the combined report. No-event and no-assessment cases are not policy-disabled states.
 - Rule-level summary includes devices with assessments even if absent from current inventory; detail and combined reports are inventory-led. Their populations can differ deliberately. Neither invents an expected-rule baseline or treats discovered rules as the required baseline.
@@ -66,9 +66,9 @@ Correlation requires the same device and a nonempty normalized drive, with the m
 
 ## Existing Tools Reused
 
-- [AV-mode inventory](../DefenderEndpoint-AV-Mode-Inventory.kql): the reported-mode source used by the three inventory-led reports, extended here with explicit missing data and separate recency.
-- [Intune ASR policy/event correlation](../ASR-Policy-Event-Correlation/): optional configured-policy context. It uses Graph beta and supported Endpoint Security templates; GUID event correlation is not effective per-device policy or proof of the originating policy. Overlapping policies repeat counts. Review assignment exclusions/filters independently, especially if group lookup fails. Do not publish generated policy/assignment data.
-- [Endpoint policy auditing](../DefenderEndpoint-Security-Policy-Changes.kql): optional change history requiring its Sentinel sources. Not a replacement for applied-device policy and not revalidated as part of this pack.
+- [AV-mode inventory](DefenderEndpoint-AV-Mode-Inventory.kql): the reported-mode source used by the three inventory-led reports, extended here with explicit missing data and separate recency.
+- [Intune ASR policy/event correlation](Intune-ASR-Policy-Event-Correlation-Guide.md): optional configured-policy context. It uses Graph beta and supported Endpoint Security templates; GUID event correlation is not effective per-device policy or proof of the originating policy. Overlapping policies repeat counts. Review assignment exclusions/filters independently, especially if group lookup fails. Do not publish generated policy/assignment data.
+- [Endpoint policy auditing](DefenderEndpoint-Security-Policy-Changes.kql): optional change history requiring its Sentinel sources. Not a replacement for applied-device policy and not revalidated as part of this pack.
 
 ## Grounding
 

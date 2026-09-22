@@ -1,6 +1,6 @@
 # Security Auditing and Device Reports
 
-All 27 standalone reports live directly in this folder. Filenames use `Product-Subject-ReportType.kql`: **Changes** means audit history, **Inventory/Health/Evidence** means observed device state, and **Summary** means aggregated results. Guides, generators, and synthetic tests remain in subfolders.
+All 27 standalone reports, the ASR query generator, guides, validation image, and synthetic test data live directly in this single folder, with no subfolders. Filenames use `Product-Subject-ReportType.kql`: **Changes** means audit history, **Inventory/Health/Evidence** means observed device state, and **Summary** means aggregated results.
 
 **Run location:** AH = Defender Advanced Hunting (`Timestamp`); Sentinel = Log Analytics/Sentinel (`TimeGenerated`). Labels describe each query as written. Table availability, connectors, licenses, retention, and permissions still apply. None of these reports is a complete Azure resource-ID/Arc inventory.
 
@@ -25,7 +25,7 @@ All 27 standalone reports live directly in this folder. Filenames use `Product-S
 | [DefenderEndpoint-ASR-USB-Mount-Correlation.kql](DefenderEndpoint-ASR-USB-Mount-Correlation.kql) | USB ASR events with candidate mounts; preserves unmatched events and nearest ties | AH |
 | [DefenderEndpoint-Onboarding-and-ASR-Weekly-Observations.kql](DefenderEndpoint-Onboarding-and-ASR-Weekly-Observations.kql) | Last inventory observation within each week and separate, overlapping ASR activity populations | AH |
 
-ASR events, assessments, configured policy, and effective device policy are different evidence. No events does not mean Off; a compliant assessment does not establish Block mode. AV mode uses an undocumented TVM hunting property and needs known-device verification. See the [reporting guide and parameters](Defender-Migration/README.md).
+ASR events, assessments, configured policy, and effective device policy are different evidence. No events does not mean Off; a compliant assessment does not establish Block mode. AV mode uses an undocumented TVM hunting property and needs known-device verification. See the [reporting guide and parameters](Defender-Migration-Reporting-Guide.md).
 
 ## Configuration Changes and Response Actions
 
@@ -50,11 +50,12 @@ ASR events, assessments, configured policy, and effective device policy are diff
 
 ## Guides and Validation
 
-- [Migration reporting guide](Defender-Migration/README.md): parameters, assumptions, and interpretation for the ten rebuilt reports, now stored in this folder.
-- [Original-to-replacement comparison](Defender-Migration/COMPARISON.md): coverage of all 35 submitted blocks.
-- [September 22, 2026 validation](Defender-Migration/VALIDATION.md): GCC High live execution plus synthetic checks; ASR/USB positive-path coverage was synthetic because the lab returned no live events.
-- [Intune ASR policy/event generator](ASR-Policy-Event-Correlation/README.md): optional configured-policy context, with its own permissions and validation notes.
-- [Synthetic test data](Defender-Migration/tests/DefenderEndpoint-Synthetic-Test-Data.kql): test-only table bindings, not a live report.
+- [Migration reporting guide](Defender-Migration-Reporting-Guide.md): parameters, assumptions, and interpretation for the ten rebuilt reports, now stored in this folder.
+- [Original-to-replacement comparison](Defender-Migration-Query-Comparison.md): coverage of all 35 submitted blocks.
+- [September 22, 2026 validation](Defender-Migration-Validation.md): GCC High live execution plus synthetic checks; ASR/USB positive-path coverage was synthetic because the lab returned no live events.
+- [Intune ASR policy/event generator](Intune-ASR-Policy-Event-Correlation-Guide.md): optional configured-policy context, with its own permissions and validation notes.
+- [Export-IntuneAsrHuntingQuery.ps1](Export-IntuneAsrHuntingQuery.ps1): generates tenant-specific KQL in your current directory; generated policy and assignment data is not checked in.
+- [Synthetic test data](DefenderEndpoint-Synthetic-Test-Data.kql): test-only table bindings, not a live report.
 - [Filename migration map](QUERY-RENAMES.md): old paths and replacements for existing bookmarks and scripts.
 
 The original change-audit queries retain their earlier validation notes, including MDI low-volume and MDO zero-row caveats. This naming cleanup did not change query contents or revalidate older queries. Do not assume every hunt is ready to deploy as a custom detection; required identifiers and supported sources must be checked.

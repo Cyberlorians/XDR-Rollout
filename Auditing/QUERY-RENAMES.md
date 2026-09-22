@@ -2,7 +2,7 @@
 
 September 22, 2026: all 27 standalone reports were consolidated directly under Auditing and labeled by product and purpose. Query contents are unchanged. Update scripts and direct file bookmarks using this map; old filenames may no longer resolve on main. Historical commit links remain available.
 
-Paths below are relative to Auditing. The [report index](README.md) is the main entry point. The [migration guide](Defender-Migration/README.md) stays available at its previous folder URL.
+Paths below are relative to Auditing. The [report index](README.md) is the main entry point. All supporting files now share that folder too; the former subfolder URLs have been removed. Use the current [migration guide](Defender-Migration-Reporting-Guide.md) and update older bookmarks.
 
 | Previous path | Current report |
 | --- | --- |
@@ -33,4 +33,11 @@ Paths below are relative to Auditing. The [report index](README.md) is the main 
 | Defender-Migration/Readiness-Summary.kql | [DefenderEndpoint-Onboarding-and-AV-Health-Summary.kql](DefenderEndpoint-Onboarding-and-AV-Health-Summary.kql) |
 | Defender-Migration/USB-Correlation.kql | [DefenderEndpoint-ASR-USB-Mount-Correlation.kql](DefenderEndpoint-ASR-USB-Mount-Correlation.kql) |
 | Defender-Migration/Weekly-Observations.kql | [DefenderEndpoint-Onboarding-and-ASR-Weekly-Observations.kql](DefenderEndpoint-Onboarding-and-ASR-Weekly-Observations.kql) |
-| Defender-Migration/tests/Fixtures.kql | [Defender-Migration/tests/DefenderEndpoint-Synthetic-Test-Data.kql](Defender-Migration/tests/DefenderEndpoint-Synthetic-Test-Data.kql) |
+| Defender-Migration/tests/Fixtures.kql | [DefenderEndpoint-Synthetic-Test-Data.kql](DefenderEndpoint-Synthetic-Test-Data.kql) |
+| Defender-Migration/tests/DefenderEndpoint-Synthetic-Test-Data.kql | [DefenderEndpoint-Synthetic-Test-Data.kql](DefenderEndpoint-Synthetic-Test-Data.kql) |
+| Defender-Migration/README.md | [Defender-Migration-Reporting-Guide.md](Defender-Migration-Reporting-Guide.md) |
+| Defender-Migration/COMPARISON.md | [Defender-Migration-Query-Comparison.md](Defender-Migration-Query-Comparison.md) |
+| Defender-Migration/VALIDATION.md | [Defender-Migration-Validation.md](Defender-Migration-Validation.md) |
+| ASR-Policy-Event-Correlation/README.md | [Intune-ASR-Policy-Event-Correlation-Guide.md](Intune-ASR-Policy-Event-Correlation-Guide.md) |
+| ASR-Policy-Event-Correlation/Export-IntuneAsrHuntingQuery.ps1 | [Export-IntuneAsrHuntingQuery.ps1](Export-IntuneAsrHuntingQuery.ps1) |
+| ASR-Policy-Event-Correlation/gcch-advanced-hunting-results.png | [Intune-ASR-GCCH-Validation-Results.png](Intune-ASR-GCCH-Validation-Results.png) |

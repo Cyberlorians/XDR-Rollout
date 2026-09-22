@@ -4,6 +4,8 @@ Generates a ready-to-run Microsoft Defender Advanced Hunting query from the live
 
 ## Quick start
 
+Run [Export-IntuneAsrHuntingQuery.ps1](Export-IntuneAsrHuntingQuery.ps1) from the Auditing directory. The generator, this guide, and its validation image are now in that same directory; the former ASR-Policy-Event-Correlation folder has been removed.
+
 GCC High:
 
 ```powershell
@@ -23,6 +25,8 @@ The script creates `Intune-ASR-Tracking.kql` in the current directory. Open Adva
 
 No tenant ID or output path is required for normal interactive use.
 
+The generated query contains tenant policy and assignment details. Keep it local; it is not a generic checked-in report.
+
 The PowerShell script reads deployed Endpoint Security **Attack Surface Reduction Rules** policies through Microsoft Graph and writes a `.kql` file containing:
 
 - Intune policy name and ID
@@ -35,7 +39,7 @@ The PowerShell script reads deployed Endpoint Security **Attack Surface Reductio
 - Latest Defender Antivirus mode for devices that generated matching ASR events
 - Configured rules with zero observed events
 
-Run [`DefenderEndpoint-AV-Mode-Inventory.kql`](../DefenderEndpoint-AV-Mode-Inventory.kql) by itself for a current per-device inventory of Active, Passive, Disabled, EDR Blocked, and other reported states.
+Run [`DefenderEndpoint-AV-Mode-Inventory.kql`](DefenderEndpoint-AV-Mode-Inventory.kql) by itself for a current per-device inventory of Active, Passive, Disabled, EDR Blocked, and other reported states.
 
 ## Requirements
 
@@ -88,7 +92,7 @@ Validated end to end in GCC High on **2026-09-16**:
 - Ran that exact KQL in GCC High Defender Advanced Hunting, workspace `dibsecus`.
 - Returned all 14 configured rule rows in 0.844 seconds with low query load.
 
-![GCC High Advanced Hunting results showing the generated policy, assignment, rule names, GUIDs, and configured modes](gcch-advanced-hunting-results.png)
+![GCC High Advanced Hunting results showing the generated policy, assignment, rule names, GUIDs, and configured modes](Intune-ASR-GCCH-Validation-Results.png)
 
 ## What the correlation means
 
